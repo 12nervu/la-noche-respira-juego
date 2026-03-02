@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>La noche respira — minijuego</title>
+  <style>
+    :root{
+      --bg1:#0b1020;
+      --bg2:#0a0f1a;
+      --ink:#e9eefc;
+      --muted:#b7c2e6;
+      --card:rgba(255,255,255,.06);
+      --card2:rgba(255,255,255,.10);
+      --good:#63e6be;
+      --bad:#ff6b6b;
+      --warn:#ffd43b;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--ink);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: radial-gradient(1200px 700px at 20% 10%, #14214a 0%, var(--bg1) 35%, var(--bg2) 100%);
+      overflow:hidden;
+    }
+
+    /* “Respiración” del fondo */
+    .breath {
+      position:fixed; inset:-20%;
+      background: radial-gradient(closest-side at 50% 50%, rgba(255,255,255,.10), rgba(255,255,255,0));
+      filter: blur(10px);
+      animation: inhale 6s ease-in-out infinite;
+      pointer-events:none;
+      opacity:.9;
+    }
+    @keyframes inhale{
+      0%   { transform: scale(1.00); opacity:.55; }
+      50%  { transform: scale(1.12); opacity:.85; }
+      100% { transform: scale(1.00); opacity:.55; }
+    }
+
+    .wrap{
+      width:min(920px, 94vw);
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap:16px;
+      padding:16px;
+    }
+    @media (max-width: 860px){
+      .wrap{grid-template-columns:1fr}
+    }
+
+    .panel{
+      background:linear-gradient(180deg, var(--card), rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:18px;
+      padding:16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      backdrop-filter: blur(8px);
+    }
+    h1{
+      margin:0 0 6px 0;
+      font-size:20px;
+      letter-spacing:.2px;
+    }
+    .subtitle{
+      margin:0 0 12px 0;
+      color:var(--muted);
+      line-height:1.35;
+      font-size:13px;
+    }
+
+    .scene{
+      position:relative;
+      height:340px;
+      border-radius:16px;
+      background:
+        linear-gradient(180deg, rgba(15,24,52,.9) 0%, rgba(8,12,22,.95) 65%),
+        radial-gradient(900px 260px at 30% 25%, rgba(180,220,255,.10), rgba(0,0,0,0));
+      border:1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+    }
+    .stars{
+      position:absolute; inset:0;
+      background-image:
+        radial-gradient(2px 2px at 15% 25%, rgba(255,255,255,.8) 30%, transparent 40%),
+        radial-gradient(1.5px 1.5px at 42% 18%, rgba(255,255,255,.65) 30%, transparent 40%),
+        radial-gradient(1.8px 1.8px at 70% 35%, rgba(255,255,255,.6) 30%, transparent 40%),
+        radial-gradient(1px 1px at 82% 22%, rgba(255,255,255,.55) 30%, transparent 40%),
+        radial-gradient(1.2px 1.2px at 55% 40%, rgba(255,255,255,.5) 30%, transparent 40%),
+        radial-gradient(1.5px 1.5px at 25% 45%, rgba(255,255,255,.55) 30%, transparent 40%);
+      opacity:.75;
+    }
+    .roof{
+      position:absolute; right:-40px; bottom:-20px;
+      width:380px; height:240px;
+      background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+      transform: rotate(-10deg);
+      border-radius: 24px;
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .roof:before{
+      content:"";
+      position:absolute; inset:20px;
+      background:
+        repeating-linear-gradient(45deg, rgba(0,0,0,.22), rgba(0,0,0,.22) 8px, rgba(255,255,255,.03) 8px, rgba(255,255,255,.03) 16px);
+      border-radius: 18px;
+      opacity:.55;
+    }
+    .hotel{
+      position:absolute; left:20px; bottom:40px;
+      width:240px; height:160px;
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.05));
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:18px;
+      overflow:hidden;
+    }
+    .hotel .label{
+      position:absolute; left:14px; top:12px;
+      font-weight:700; letter-spacing:.8px;
+      font-size:12px; color:rgba(255,255,255,.85);
+    }
+    .windows{
+      position:absolute; left:0; right:0; top:38px; bottom:0;
+      display:grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap:10px;
+      padding:14px;
+      opacity:.9;
+    }
+    .win{
+      border-radius:6px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.06);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.12);
+    }
+    .sleeping .win{
+      background: rgba(255,255,255,.03);
+      opacity:.7;
+    }
+
+    .billboards{
+      position:absolute; left:290px; bottom:86px;
+      display:flex; gap:10px;
+      align-items:flex-end;
+    }
+    .board{
+      width:60px; height:44px;
+      border-radius:10px;
+      background: rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.12);
+      box-shadow: 0 10px 25px rgba(0,0,0,.25);
+      position:relative;
+      animation: floaty 6s ease-in-out infinite;
+    }
+    .board:nth-child(2){height:54px; animation-delay:-2s}
+    .board:nth-child(3){height:40px; animation-delay:-4s}
+    @keyframes floaty{
+      0%{ transform: translateY(0px); }
+      50%{ transform: translateY(-8px); }
+      100%{ transform: translateY(0px); }
+    }
+
+    .event{
+      position:absolute;
+      left:0; right:0;
+      top:16px;
+      display:flex;
+      justify-content:center;
+      pointer-events:none;
+    }
+    .bubble{
+      max-width: 92%;
+      background: rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 999px;
+      padding:10px 14px;
+      font-size:14px;
+      color: rgba(255,255,255,.92);
+      opacity:0;
+      transform: translateY(-6px);
+      transition: opacity .25s ease, transform .25s ease;
+      backdrop-filter: blur(6px);
+    }
+    .bubble.show{
+      opacity:1;
+      transform: translateY(0);
+    }
+
+    .hud{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:10px;
+      margin-top:12px;
+    }
+    .stat{
+      background: rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;
+      padding:10px;
+    }
+    .stat .k{font-size:12px; color:var(--muted)}
+    .stat .v{font-size:18px; font-weight:700; margin-top:2px}
+    .bar{
+      height:10px; border-radius:999px;
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.08);
+      overflow:hidden;
+      margin-top:8px;
+    }
+    .fill{
+      height:100%;
+      width:80%;
+      background: linear-gradient(90deg, rgba(99,230,190,.95), rgba(255,212,59,.9), rgba(255,107,107,.9));
+      border-radius:999px;
+      transition: width .2s ease;
+    }
+
+    .controls{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:12px;
+    }
+    button{
+      cursor:pointer;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: var(--ink);
+      padding:10px 12px;
+      border-radius: 14px;
+      font-weight: 650;
+      transition: transform .06s ease, background .2s ease, border-color .2s ease;
+      user-select:none;
+    }
+    button:active{ transform: translateY(1px); }
+    button:hover{ background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.22); }
+    .primary{ background: rgba(99,230,190,.12); border-color: rgba(99,230,190,.35); }
+    .danger{ background: rgba(255,107,107,.12); border-color: rgba(255,107,107,.35); }
+
+    .log{
+      margin-top:10px;
+      padding:12px;
+      border-radius:14px;
+      background: rgba(0,0,0,.25);
+      border:1px solid rgba(255,255,255,.10);
+      height:190px;
+      overflow:auto;
+      font-size:13px;
+      color: rgba(255,255,255,.86);
+      line-height:1.35;
+    }
+    .muted{ color: rgba(233,238,252,.70); }
+    .good{ color: var(--good); font-weight:700; }
+    .bad{ color: var(--bad); font-weight:700; }
+    .warn{ color: var(--warn); font-weight:700; }
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size:12px;
+      padding:2px 6px;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.9);
+    }
+  </style>
+</head>
+<body>
+  <div class="breath" aria-hidden="true"></div>
+
+  <main class="wrap">
+    <section class="panel">
+      <h1>La noche respira</h1>
+      <p class="subtitle">
+        Detecta lo que ocurre <b>a lo lejos</b> sin romper la calma del hotel.  
+        Pulsa: <span class="kbd">1</span> Bus, <span class="kbd">2</span> Búho, <span class="kbd">3</span> Gato.
+      </p>
+
+      <div class="scene" id="scene">
+        <div class="stars"></div>
+
+        <div class="event">
+          <div class="bubble" id="bubble">…</div>
+        </div>
+
+        <div class="hotel sleeping" id="hotel">
+          <div class="label">HOTEL</div>
+          <div class="windows" id="windows"></div>
+        </div>
+
+        <div class="billboards" aria-hidden="true">
+          <div class="board"></div>
+          <div class="board"></div>
+          <div class="board"></div>
+        </div>
+
+        <div class="roof"></div>
+      </div>
+
+      <div class="hud">
+        <div class="stat">
+          <div class="k">Puntaje</div>
+          <div class="v" id="score">0</div>
+        </div>
+        <div class="stat">
+          <div class="k">Racha</div>
+          <div class="v" id="streak">0</div>
+        </div>
+        <div class="stat">
+          <div class="k">Calma del hotel</div>
+          <div class="v"><span id="calmTxt">80</span>/100</div>
+          <div class="bar"><div class="fill" id="calmBar"></div></div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="primary" id="startBtn">Iniciar</button>
+        <button id="busBtn">Bus (1)</button>
+        <button id="owlBtn">Búho (2)</button>
+        <button id="catBtn">Gato (3)</button>
+        <button class="danger" id="resetBtn">Reiniciar</button>
+      </div>
+
+      <div class="log" id="log"></div>
+    </section>
+
+    <aside class="panel">
+      <h1>Cómo se gana</h1>
+      <p class="subtitle">
+        La noche “inhala”: todo se vuelve más lento y silencioso. A veces ocurre un evento al azar.
+        Si aciertas el evento, sube tu puntaje. Si te desesperas (muchos clics al azar / spameas), baja la calma.
+      </p>
+
+      <div class="stat">
+        <div class="k">Reglas rápidas</div>
+        <div class="muted" style="margin-top:6px; line-height:1.45;">
+          • Un evento aparece cada pocos segundos (a veces no pasa nada).<br>
+          • Tienes un tiempo muy corto para responder.<br>
+          • Si respondes sin evento, pierdes calma.<br>
+          • Si la calma llega a 0: el hotel “despierta” y pierdes.
+        </div>
+      </div>
+
+      <div class="stat" style="margin-top:10px;">
+        <div class="k">Inspiración (el poema)</div>
+        <div class="muted" style="margin-top:6px; line-height:1.45;">
+          “La noche respira hacia dentro; el hotel entero duerme…  
+          A lo lejos… pasa un bus, ulula un búho, desfila un gato…”
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    // --- UI refs ---
+    const logEl = document.getElementById('log');
+    const bubble = document.getElementById('bubble');
+    const scoreEl = document.getElementById('score');
+    const streakEl = document.getElementById('streak');
+    const calmTxt = document.getElementById('calmTxt');
+    const calmBar = document.getElementById('calmBar');
+    const hotelEl = document.getElementById('hotel');
+    const windowsEl = document.getElementById('windows');
+
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const busBtn = document.getElementById('busBtn');
+    const owlBtn = document.getElementById('owlBtn');
+    const catBtn = document.getElementById('catBtn');
+
+    // --- make hotel windows ---
+    for(let i=0;i<24;i++){
+      const w = document.createElement('div');
+      w.className='win';
+      windowsEl.appendChild(w);
+    }
+
+    // --- game state ---
+    const EVENTS = [
+      { key:'bus', label:'Pasa un bus a lo lejos.', points: 10 },
+      { key:'owl', label:'Ulula un búho en la noche.', points: 12 },
+      { key:'cat', label:'Desfila un gato sobre las tejas.', points: 14 },
+    ];
+
+    let running = false;
+    let score = 0;
+    let streak = 0;
+    let calm = 80;
+
+    let currentEvent = null;      // {key, label, points}
+    let eventDeadline = 0;        // timestamp
+    let nextEventTimer = null;
+
+    // pacing
+    const MIN_GAP = 1700;
+    const MAX_GAP = 4200;
+    const RESPONSE_WINDOW = 1700; // ms
+
+    function now(){ return Date.now(); }
+
+    function rnd(min, max){
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function log(msg){
+      const p = document.createElement('div');
+      p.innerHTML = msg;
+      logEl.appendChild(p);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function setBubble(text, show=true){
+      bubble.textContent = text;
+      if(show) bubble.classList.add('show');
+      else bubble.classList.remove('show');
+    }
+
+    function updateHUD(){
+      scoreEl.textContent = score;
+      streakEl.textContent = streak;
+      calmTxt.textContent = calm;
+      calmBar.style.width = Math.max(0, Math.min(100, calm)) + '%';
+      if(calm <= 0){
+        endGame("El hotel despertó. La calma se rompió.");
+      }
+      // visual: sleeping vs awake
+      if(calm >= 30){
+        hotelEl.classList.add('sleeping');
+      } else {
+        hotelEl.classList.remove('sleeping');
+      }
+    }
+
+    function punish(reason){
+      calm = Math.max(0, calm - 8);
+      streak = 0;
+      log(`<span class="bad">✗</span> ${reason} <span class="muted">(calma -8)</span>`);
+      updateHUD();
+    }
+
+    function reward(ev){
+      score += ev.points + Math.min(10, streak); // racha da bonus
+      streak += 1;
+      calm = Math.min(100, calm + 4);
+      log(`<span class="good">✓</span> ${ev.label} <span class="muted">(+${ev.points} + bonus, calma +4)</span>`);
+      updateHUD();
+    }
+
+    function clearEvent(){
+      currentEvent = null;
+      eventDeadline = 0;
+      setBubble("…", false);
+    }
+
+    function spawnEvent(){
+      if(!running) return;
+
+      // 25% chance: “no pasa nada” (muy poema)
+      const nothing = Math.random() < 0.25;
+      if(nothing){
+        setBubble("La noche respira… (no pasa nada)", true);
+        setTimeout(()=> setBubble("…", false), 900);
+        scheduleNext();
+        return;
+      }
+
+      currentEvent = EVENTS[rnd(0, EVENTS.length-1)];
+      eventDeadline = now() + RESPONSE_WINDOW;
+
+      // show hint bubble (sin decir la respuesta explícita)
+      const hint = ({
+        bus: "A lo lejos… vibra algo y pasa.",
+        owl: "Desde lo alto… un sonido corta el aire.",
+        cat: "Sobre las tejas… una sombra camina."
+      })[currentEvent.key];
+
+      setBubble(hint, true);
+
+      // if user fails to answer in time:
+      setTimeout(()=>{
+        if(!running) return;
+        if(currentEvent && now() > eventDeadline){
+          punish("Te quedaste mirando demasiado. El detalle se fue.");
+          clearEvent();
+          scheduleNext();
+        }
+      }, RESPONSE_WINDOW + 10);
+    }
+
+    function scheduleNext(){
+      if(!running) return;
+      const gap = rnd(MIN_GAP, MAX_GAP);
+      nextEventTimer = setTimeout(spawnEvent, gap);
+    }
+
+    function startGame(){
+      if(running) return;
+      running = true;
+      logEl.innerHTML = "";
+      log(`<span class="warn">•</span> Iniciaste. Mantén la calma y detecta lo que ocurre.`);
+      scheduleNext();
+      updateHUD();
+    }
+
+    function endGame(message){
+      if(!running) return;
+      running = false;
+      if(nextEventTimer) clearTimeout(nextEventTimer);
+      clearEvent();
+      setBubble(message, true);
+      log(`<span class="warn">Fin.</span> ${message}`);
+    }
+
+    function resetGame(){
+      running = false;
+      if(nextEventTimer) clearTimeout(nextEventTimer);
+      score = 0;
+      streak = 0;
+      calm = 80;
+      clearEvent();
+      setBubble("…", false);
+      logEl.innerHTML = "";
+      updateHUD();
+    }
+
+    function answer(key){
+      if(!running){
+        log(`<span class="muted">Tip:</span> pulsa <b>Iniciar</b> primero.`);
+        return;
+      }
+
+      // if no event active
+      if(!currentEvent){
+        punish("Te apresuraste y no había nada.");
+        return;
+      }
+
+      // if late
+      if(now() > eventDeadline){
+        punish("Llegaste tarde. Ya pasó.");
+        clearEvent();
+        scheduleNext();
+        return;
+      }
+
+      // check
+      if(key === currentEvent.key){
+        reward(currentEvent);
+        clearEvent();
+        scheduleNext();
+      } else {
+        punish("Eso no era. La noche se incomodó.");
+      }
+    }
+
+    // --- wiring ---
+    startBtn.addEventListener('click', startGame);
+    resetBtn.addEventListener('click', resetGame);
+
+    busBtn.addEventListener('click', ()=> answer('bus'));
+    owlBtn.addEventListener('click', ()=> answer('owl'));
+    catBtn.addEventListener('click', ()=> answer('cat'));
+
+    window.addEventListener('keydown', (e)=>{
+      if(e.key === '1') answer('bus');
+      if(e.key === '2') answer('owl');
+      if(e.key === '3') answer('cat');
+    });
+
+    // init
+    updateHUD();
+    log(`<span class="muted">Listo.</span> Pulsa <b>Iniciar</b> para jugar.`);
+  </script>
+</body>
+</html>
